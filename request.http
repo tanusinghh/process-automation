@@ -1,0 +1,8 @@
+### Create a new record in an entity
+POST http://localhost:4004/odata/v4/img/uploadImage
+Content-Type: application/json
+Accept: application/json
+
+{
+    "FileData":"iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAh0lEQVR4nO3SvQmAQAxA4aelOoKj3CiCowhuZ+ES4gq2xuYaRfHfiOZBmoMLXxGwLGucrMzte+QtgGlHAbv3yMrHvfM9wNZOA0T7CEULMFcKdEAPOJQqvbwGQg1ABDQekaFU7gEtEGsAAqDyiAKl3NUXfqTXAJKF98cA0wwgvztC0QJYFlc2AFiyrxzWXqdJAAAAAElFTkSuQmCC44444"
+}

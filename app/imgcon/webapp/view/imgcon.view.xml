@@ -1,0 +1,26 @@
+<mvc:View controllerName="imgcon.imgcon.controller.imgcon"
+     xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:unified="sap.ui.unified"
+     displayBlock="true"
+    >
+    <Page id="page" title="{i18n>title}">
+        <content >
+    <VBox>
+                <unified:FileUploader
+                    id="fileUploader"
+                    name="uploadFile"
+                    multiple="false"
+                    width="100%"
+                    change="onFileChange"
+                />
+                <Button
+                    text="Upload"
+                    press="onUploadPress"
+                    type="Emphasized"
+                />
+            </VBox>
+
+    </content >
+    </Page>
+</mvc:View>

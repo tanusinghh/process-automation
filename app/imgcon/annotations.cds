@@ -1,0 +1,1 @@
+using ImgService as service from '../../srv/service';
