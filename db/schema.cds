@@ -17,5 +17,3 @@ entity CapturedScreens {
     @Core.IsMediaType: true
     mediaType : String;
 }
-
-

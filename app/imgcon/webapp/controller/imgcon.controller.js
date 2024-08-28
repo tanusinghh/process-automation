@@ -1,56 +1,68 @@
+
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
     "sap/m/MessageToast",
-    "sap/ui/model/odata/v2/ODataModel"
-], function (Controller, MessageToast, ODataModel) {
+    "sap/m/MessageBox"
+], function (Controller, MessageToast, MessageBox) {
     "use strict";
-
-    return Controller.extend("imgcon.imgcon.controller.imgcon", {
+    return Controller.extend("my.app.controller.View1", {
         onInit: function () {
-            // Initialize the OData model when the controller is instantiated
-            this._oODataModel = new ODataModel("/odata/v2/img", {
-                useBatch: false, // Optional: Disable batch requests
-                defaultBindingMode: "TwoWay" // Optional: Set default binding mode
-            });
+            // Initialization logic if needed
         },
 
         onFileChange: function (oEvent) {
-            var aFiles = oEvent.getParameter("files");
+            const oFiledata = oEvent.getParameter("files");
+            const oFile = oFiledata[0];
 
-            if (aFiles && aFiles.length > 0) {
-                var oFile = aFiles[0];
-                this.convertFileToBase64(oFile);
+            if (oFile) {
+                // Proceed to upload immediately after selecting a file
+                this.uploadImage(oFile);
             } else {
-                MessageToast.show("No files selected.");
+                MessageBox.warning("No file selected.");
             }
         },
 
-        convertFileToBase64: function (oFile) {
-            var reader = new FileReader();
-            var that = this;
+        uploadImage: function (oFile) {
+            return new Promise((resolve, reject) => {
+                const oFileReader = new FileReader();
 
-            reader.onload = function (oEvent) {
-                var base64String = oEvent.target.result.split(',')[1]; // Extract base64 part from data URL
-                that.uploadFile(base64String, oFile.name);
-            };
+                oFileReader.onload = (oEvent) => {
+                    // Extract base64 data from the result
+                    let sBase64 = oEvent.target.result;
 
-            reader.readAsDataURL(oFile); // Read the file as data URL
-        },
+                    // Strip the base64 prefix if present
+                    sBase64 = sBase64.split(',')[1];
 
-        uploadFile: function (base64String, fileName) {
-            var oEntry = {
-                FileData: base64String
-            };
+                    const oPayload = {
+                        FileName: oFile.name,
+                        screenImg: sBase64,
+                        mediaType: oFile.type
+                    };
 
-            this._oODataModel.callFunction("/uploadImage", {
-                method: "POST",
-                urlParameters: oEntry,
-                success: function (response) {
-                    MessageToast.show("File uploaded and processed successfully.");
-                },
-                error: function (error) {
-                    MessageToast.show("File upload failed: " + error.message);
-                }
+                    // Call backend service to store image
+                    $.ajax({
+                        url: "/odata/v2/img/uploadImage", // Ensure this is the correct endpoint
+                        method: "POST",
+                        data: JSON.stringify(oPayload),
+                        contentType: "application/json",
+                        success: function (data) {
+                            MessageToast.show("Image uploaded successfully.");
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            MessageBox.error("Error uploading image: " + error.responseText);
+                            reject(error);
+                        }
+                    });
+                };
+
+                oFileReader.onerror = function () {
+                    MessageBox.error("Error reading file.");
+                    reject(new Error("Error reading file."));
+                };
+
+                // Convert file to base64
+                oFileReader.readAsDataURL(oFile);
             });
         }
     });

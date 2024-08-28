@@ -11,9 +11,13 @@ service ImgService {
     entity CapturedScreen as projection on CapturedScreens;
     //action uploadZipAndConvertToPDF(file: LargeBinary) returns String;
     action uploadImage(
-    FileData:LargeBinary
-) returns Boolean;
-
-
+    FileName: String, 
+    screenImg: LargeBinary, 
+    mediaType: String) 
+    returns String;
 }
+
+
+
+
 

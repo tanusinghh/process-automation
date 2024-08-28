@@ -5,22 +5,51 @@
      displayBlock="true"
     >
     <Page id="page" title="{i18n>title}">
-        <content >
-    <VBox>
-                <unified:FileUploader
-                    id="fileUploader"
-                    name="uploadFile"
-                    multiple="false"
-                    width="100%"
-                    change="onFileChange"
-                />
-                <Button
-                    text="Upload"
-                    press="onUploadPress"
-                    type="Emphasized"
-                />
-            </VBox>
+        <content>
+            <!-- File Uploader Control -->
+            <unified:FileUploader
+        ""="true"
+                id="fileUploader"
+                width="100%"
+                name="upload"
+                placeholder="Select images to upload"
+                change="onFileChange"
+                multiple="true" /> <!-- Enable multiple file selection -->
 
-    </content >
+            <!-- List to Display Selected Images -->
+            <List 
+                id="imageList"
+                items="{/SelectedImages}"
+                headerText="Selected Images"
+                width="100%">
+                <items>
+                    <CustomListItem>
+                        <HBox>
+                            <items>
+                                <Text text="{imageName}" />
+                            </items>
+                        </HBox>
+                    </CustomListItem>
+                </items>
+            </List>
+
+            <!-- Upload Button -->
+            <Button 
+                text="Upload and Convert to PDF"
+                press="onUploadPress"
+                type="Emphasized"
+              />
+
+            <!-- Display Message -->
+            <MessageStrip
+                id="messageStrip"
+                showCloseButton="true"
+                showIcon="true"
+                type="Information"
+                visible="false"
+                text="" />
+
+        </content>
+
     </Page>
 </mvc:View>

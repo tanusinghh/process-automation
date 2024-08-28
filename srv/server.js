@@ -1,6 +1,21 @@
-const cds = require("@sap/cds");
+const cds = require('@sap/cds');
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+
+// Increase the body size limit
+// app.use(bodyParser.json({ limit: '10mb' }));
+// app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+// Integrate with CAP
+cds.on('bootstrap', (app) => {
+    app.use(bodyParser.json({ limit: '100mb' }));
+    app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+});
+
+// Start the server
 
 
-const cov2ap = require("@cap-js-community/odata-v2-adapter");
-cds.on("bootstrap", (app) => app.use(cov2ap()));
-module.exports = cds.server;
+
+
+
