@@ -1,67 +1,71 @@
 const cds = require('@sap/cds');
-const fs = require('fs');
-const path = require('path');
 const PDFDocument = require('pdfkit');
+const { PassThrough } = require('stream');
 
 module.exports = cds.service.impl(async function () {
   this.on('uploadImage', async (req) => {
-    const { FileName, screenImg, mediaType } = req.data;
+    const { FileName, ScreenImg, MediaType } = req.data;
 
     // Validate inputs
-    if (!FileName || !screenImg || !mediaType) {
-      return req.reject(400, 'FileName, screenImg, and mediaType are required.');
+    if (!FileName || !ScreenImg || !MediaType || !Array.isArray(ScreenImg) || !Array.isArray(MediaType) || ScreenImg.length !== MediaType.length) {
+      return req.reject(400, 'FileName, ScreenImg (array of base64 strings), and MediaType (array of strings) are required and must be of the same length.');
     }
 
-    // Check if the uploaded file is an image
-    const allowedMediaTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (!allowedMediaTypes.includes(mediaType)) {
-      return req.reject(400, 'Only image files (JPEG, PNG, GIF) are accepted.');
-    }
-
-    // Define the path to save the PDF
-    const uploadDir = path.join(__dirname, '../uploads');
-    const pdfFilePath = path.join(uploadDir, FileName.replace(/\.[^/.]+$/, ".pdf")); // Replace file extension with .pdf
-
-    // Ensure the uploads directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Convert base64 to buffer
-    const imageBuffer = Buffer.from(screenImg, 'base64');
+    // Initialize a new PDF document
+    const pdfDoc = new PDFDocument();
+    const passThroughStream = new PassThrough();
+    pdfDoc.pipe(passThroughStream);
 
     try {
-      // Check if buffer is a valid image before proceeding
-      if (!imageBuffer || imageBuffer.length === 0) {
-        throw new Error('Invalid image buffer.');
+      const margin = 50;
+      let yPosition = margin;
+
+      for (let i = 0; i < ScreenImg.length; i++) {
+        const imageBase64 = ScreenImg[i];
+        const imageBuffer = Buffer.from(imageBase64, 'base64');
+        const mediaType = MediaType[i];
+
+        const allowedMediaTypes = ['image/jpeg', 'image/png','image/jpg','image/gif'];
+        if (!allowedMediaTypes.includes(mediaType)) {
+          throw new Error(`Only image files (JPEG, PNG, GIF) are accepted. Invalid type: ${mediaType}`);
+        }
+
+        if (!imageBuffer || imageBuffer.length === 0) {
+          throw new Error('Invalid image buffer.');
+        }
+
+        if (yPosition > pdfDoc.page.height - margin) {
+          pdfDoc.addPage(); // Add a new page if the current page is full
+          yPosition = margin; // Reset yPosition for the new page
+        }
+
+        pdfDoc.image(imageBuffer, margin, yPosition, { fit: [pdfDoc.page.width - 2 * margin, 700] });
+        yPosition += 700; // Move the yPosition down for the next image
+
+        if (yPosition > pdfDoc.page.height - margin) {
+          pdfDoc.addPage(); // Add a new page if needed
+          yPosition = margin;
+        }
       }
 
-      // Initialize a new PDF document
-      const pdfDoc = new PDFDocument();
-      const pdfStream = fs.createWriteStream(pdfFilePath);
-      pdfDoc.pipe(pdfStream);
-
-      // Add the image to the PDF
-      pdfDoc.image(imageBuffer, 0, 0, { fit: [500, 700] });
-
-      // Finalize the PDF file
       pdfDoc.end();
 
-      // Wait for the PDF file to be fully written
-      await new Promise((resolve, reject) => {
-        pdfStream.on('finish', resolve);
-        pdfStream.on('error', reject);
+      // Collect the PDF data from the PassThrough stream
+      const pdfBuffer = await new Promise((resolve, reject) => {
+        const chunks = [];
+        passThroughStream.on('data', chunk => chunks.push(chunk));
+        passThroughStream.on('end', () => resolve(Buffer.concat(chunks)));
+        passThroughStream.on('error', reject);
       });
 
-      return `PDF created successfully and saved as ${pdfFilePath}`;
+      // Encode PDF buffer to Base64
+      const pdfBase64 = pdfBuffer.toString('base64');
+
+      return { pdfBase64 };
 
     } catch (error) {
-      console.error('Error processing the image file:', error);
-      return req.reject(500, `Error processing the image file: ${error.message}`);
+      console.error('Error processing the image files:', error);
+      return req.reject(500, `Error processing the image files: ${error.message}`);
     }
   });
 });
-
-
-
-

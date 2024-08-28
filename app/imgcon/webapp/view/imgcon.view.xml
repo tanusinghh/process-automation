@@ -1,23 +1,23 @@
-<mvc:View controllerName="imgcon.imgcon.controller.imgcon"
-     xmlns:mvc="sap.ui.core.mvc"
+<mvc:View 
+    controllerName="imgcon.imgcon.controller.imgcon"
+    xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
     xmlns:unified="sap.ui.unified"
-     displayBlock="true"
-    >
+    displayBlock="true">
+    
     <Page id="page" title="{i18n>title}">
         <content>
             <!-- File Uploader Control -->
             <unified:FileUploader
-        ""="true"
                 id="fileUploader"
                 width="100%"
                 name="upload"
                 placeholder="Select images to upload"
                 change="onFileChange"
-                multiple="true" /> <!-- Enable multiple file selection -->
+                multiple="true" />
 
             <!-- List to Display Selected Images -->
-            <List 
+            <!-- <List 
                 id="imageList"
                 items="{/SelectedImages}"
                 headerText="Selected Images"
@@ -31,14 +31,13 @@
                         </HBox>
                     </CustomListItem>
                 </items>
-            </List>
+            </List> -->
 
             <!-- Upload Button -->
             <Button 
                 text="Upload and Convert to PDF"
                 press="onUploadPress"
-                type="Emphasized"
-              />
+                type="Emphasized" />
 
             <!-- Display Message -->
             <MessageStrip
@@ -50,6 +49,5 @@
                 text="" />
 
         </content>
-
     </Page>
 </mvc:View>

@@ -1,69 +1,128 @@
-
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
-    "sap/m/MessageToast",
-    "sap/m/MessageBox"
-], function (Controller, MessageToast, MessageBox) {
+    "sap/ui/model/json/JSONModel",
+    "sap/m/MessageStrip",
+    "sap/ui/unified/FileUploader"
+], function (Controller, JSONModel, MessageStrip, FileUploader) {
     "use strict";
-    return Controller.extend("my.app.controller.View1", {
+
+    return Controller.extend("imgcon.imgcon.controller.imgcon", {
         onInit: function () {
-            // Initialization logic if needed
+            // Initialize model to hold selected images
+            var oModel = new JSONModel({
+                SelectedImages: [],
+                MediaTypes: [],
+                FileNames: []
+            });
+            this.getView().setModel(oModel);
         },
 
         onFileChange: function (oEvent) {
-            const oFiledata = oEvent.getParameter("files");
-            const oFile = oFiledata[0];
+            var aFiles = oEvent.getParameter("files");
+            var oModel = this.getView().getModel();
+            var aSelectedImages = oModel.getProperty("/SelectedImages") || [];
+            var aMediaTypes = oModel.getProperty("/MediaTypes") || [];
+            var aFileNames = oModel.getProperty("/FileNames") || [];
 
-            if (oFile) {
-                // Proceed to upload immediately after selecting a file
-                this.uploadImage(oFile);
-            } else {
-                MessageBox.warning("No file selected.");
+            // Process selected files
+            for (var i = 0; i < aFiles.length; i++) {
+                var file = aFiles[i];
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    var base64Image = e.target.result.split(',')[1]; // Extract base64 part of data URL
+                    aSelectedImages.push(base64Image);
+                    aMediaTypes.push(file.type);
+                    aFileNames.push(file.name);
+
+                    oModel.setProperty("/SelectedImages", aSelectedImages);
+                    oModel.setProperty("/MediaTypes", aMediaTypes);
+                    oModel.setProperty("/FileNames", aFileNames);
+                    
+                };
+
+                reader.readAsDataURL(file);
             }
         },
 
-        uploadImage: function (oFile) {
-            return new Promise((resolve, reject) => {
-                const oFileReader = new FileReader();
+        onUploadPress: async function () {
+            var oModel = this.getView().getModel();
+            var aSelectedImages = oModel.getProperty("/SelectedImages");
+            var aMediaTypes = oModel.getProperty("/MediaTypes");
+            var aFileNames = oModel.getProperty("/FileNames");
 
-                oFileReader.onload = (oEvent) => {
-                    // Extract base64 data from the result
-                    let sBase64 = oEvent.target.result;
+            if (aSelectedImages.length === 0) {
+                this._showMessage("Please select images to upload.");
+                return;
+            }
 
-                    // Strip the base64 prefix if present
-                    sBase64 = sBase64.split(',')[1];
-
-                    const oPayload = {
-                        FileName: oFile.name,
-                        screenImg: sBase64,
-                        mediaType: oFile.type
-                    };
-
-                    // Call backend service to store image
-                    $.ajax({
-                        url: "/odata/v2/img/uploadImage", // Ensure this is the correct endpoint
-                        method: "POST",
-                        data: JSON.stringify(oPayload),
-                        contentType: "application/json",
-                        success: function (data) {
-                            MessageToast.show("Image uploaded successfully.");
-                            resolve(data);
-                        },
-                        error: function (error) {
-                            MessageBox.error("Error uploading image: " + error.responseText);
-                            reject(error);
-                        }
-                    });
+            try {
+                var oPayload = {
+                    FileName: aFileNames, // Example filename
+                    ScreenImg: aSelectedImages,
+                    MediaType: aMediaTypes
                 };
 
-                oFileReader.onerror = function () {
-                    MessageBox.error("Error reading file.");
-                    reject(new Error("Error reading file."));
-                };
+                var oService = "/odata/v2/img/uploadImage"; // Replace with your actual service URL
+                var response = await fetch(oService, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(oPayload)
+                });
 
-                // Convert file to base64
-                oFileReader.readAsDataURL(oFile);
-            });
+                if (response.status ===404) {
+                    this._showMessage("Not found.");
+                    
+                } else if (response.ok) {
+                    oModel.setProperty("/SelectedImages", []);
+                    oModel.setProperty("/MediaTypes", []);
+                    oModel.setProperty("/FileNames", []);
+                    var result = await response.json(); // Assuming the server returns JSON with base64 data
+                    var base64Data = result.d.uploadImage.pdfBase64; // Adjust based on actual response structure
+                    var fileName = "download.pdf"; // Adjust based on actual response
+
+                    // Convert base64 to binary
+                    var binaryString = window.atob(base64Data);
+                    var len = binaryString.length;
+                    var bytes = new Uint8Array(len);
+                    for (var i = 0; i < len; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    var blob = new Blob([bytes], { type: 'application/pdf' });
+
+                    // Create a link element
+                    var link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = fileName;
+
+                    // Programmatically click the link to trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                } else {
+                    var result = await response.text();
+                    this._showMessage(result, "Error");
+                }
+            } catch (error) {
+                this._showMessage("An error occurred: " + error.message, "Error");
+            }
+        },
+
+        _showMessage: function (sText, sType) {
+            var oMessageStrip = this.byId("messageStrip");
+            if (!oMessageStrip) {
+                oMessageStrip = new MessageStrip({
+                    id: "messageStrip",
+                    showCloseButton: true
+                });
+                this.getView().byId("messageContainer").addItem(oMessageStrip); // Ensure you have a container with id "messageContainer"
+            }
+            oMessageStrip.setText(sText);
+            oMessageStrip.setType(sType || "Information");
+            oMessageStrip.setVisible(true);
         }
     });
 });
